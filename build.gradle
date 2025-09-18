@@ -1,0 +1,63 @@
+buildscript {
+    ext {
+        gradleupShadowVersion = '9.1.0'
+        opentelemetryJavaagentVersion = '2.20.0'
+        autoServiceVersion = '1.1.1'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version "${gradleupShadowVersion}"
+}
+
+group = 'kr.hwangti.opentelemetry.extension'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    otel
+}
+
+dependencies {
+    implementation platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha:${opentelemetryJavaagentVersion}-alpha")
+
+    compileOnly "com.google.auto.service:auto-service:${autoServiceVersion}"
+    annotationProcessor "com.google.auto.service:auto-service:${autoServiceVersion}"
+
+    compileOnly 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi'
+    compileOnly 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator'
+    compileOnly 'io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api'
+
+    otel "io.opentelemetry.javaagent:opentelemetry-javaagent:${opentelemetryJavaagentVersion}"
+}
+
+tasks {
+    compileJava {
+        options.release.set(8)
+    }
+
+    assemble.dependsOn(shadowJar)
+}
+
+tasks.register('extendedAgent', Jar) {
+    dependsOn clean
+    dependsOn configurations.otel
+
+    archiveFileName = 'opentelemetry-javaagent.jar'
+    from zipTree(configurations.otel.singleFile)
+    from(tasks.shadowJar.archiveFile) {
+        into 'extensions'
+    }
+
+    doFirst {
+        manifest.from(
+                zipTree(configurations.otel.singleFile).matching {
+                    include 'META-INF/MANIFEST.MF'
+                }.singleFile
+        )
+    }
+}
