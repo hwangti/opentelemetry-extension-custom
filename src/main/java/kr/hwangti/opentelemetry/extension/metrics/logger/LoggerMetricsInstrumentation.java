@@ -30,22 +30,30 @@ public class LoggerMetricsInstrumentation implements TypeInstrumentation {
     @SuppressWarnings("unused")
     public static class LoggerEventAdvice {
 
-        public static final LongCounter counter = GlobalOpenTelemetry
-                .getMeter("io.opentelemetry.sdk.metrics")
-                .counterBuilder("logger.events")
-                .setUnit("total")
-                .setDescription("Number of log events that were enabled by the effective log level")
-                .build();
+        public static LongCounter counter;
+
+        static {
+            counter = GlobalOpenTelemetry
+                    .getMeter("io.opentelemetry.sdk.metrics")
+                    .counterBuilder("logger.events")
+                    .setUnit("total")
+                    .setDescription("Number of log events that were enabled by the effective log level")
+                    .build();
+
+            counter.add(0, Attributes.builder().put("level", "TRACE").build());
+            counter.add(0, Attributes.builder().put("level", "DEBUG").build());
+            counter.add(0, Attributes.builder().put("level", "INFO").build());
+            counter.add(0, Attributes.builder().put("level", "WARN").build());
+            counter.add(0, Attributes.builder().put("level", "ERROR").build());
+        }
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onEnter(@Advice.Origin("#m") String methodName) {
             counter.add(1, Attributes.builder()
-                    .put("level", methodName)
+                    .put("level", methodName.toUpperCase())
                     .build());
         }
 
     }
-
-
 
 }

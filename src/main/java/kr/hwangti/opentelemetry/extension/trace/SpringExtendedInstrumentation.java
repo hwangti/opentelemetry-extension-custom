@@ -37,6 +37,7 @@ public class SpringExtendedInstrumentation implements TypeInstrumentation {
         public static Scope onEnter(@Advice.Origin Method method,
                                     @Advice.Local("otelSpan") Span span,
                                     @Advice.Local("otelScope") Scope scope) {
+
             // Get a Tracer instance from OpenTelemetry.
             Tracer tracer = GlobalOpenTelemetry.getTracer("spring-extended", "semver:1.0.0");
 
